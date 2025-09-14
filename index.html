@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="5; url=https://github.com" />
+    <title>Redirecting...</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            text-align: center; 
+            padding-top: 50px; 
+            background-color: #f6f8fa; 
+            color: #24292e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: auto; 
+            padding: 20px; 
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            background-color: #ffffff;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        p {
+            font-size: 16px;
+            color: #586069;
+        }
+        .loader { 
+            border: 4px solid #f3f3f3; 
+            border-radius: 50%; 
+            border-top: 4px solid #3498db; 
+            width: 40px; 
+            height: 40px; 
+            animation: spin 1.5s linear infinite; 
+            margin: 20px auto; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="title">Link Shortener</h1>
+        <p id="message">Please wait, we are fetching your link...</p>
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        // यह एक सेल्फ-इन्वोकिंग async फंक्शन है, जो पेज लोड होते ही अपने आप चल जाता है।
+        (async function () {
+            const messageElement = document.getElementById('message');
+            const titleElement = document.getElementById('title');
+            const loaderElement = document.querySelector('.loader');
+
+            // 1. URL से शॉर्ट कोड निकालना (जैसे #google)
+            // window.location.hash हैशटैग (#) के बाद की वैल्यू देता है।
+            const shortCode = window.location.hash.substring(1);
+
+            // 2. अगर URL में कोई शॉर्ट कोड नहीं है, तो एक वेलकम मैसेज दिखाएँ।
+            if (!shortCode) {
+                loaderElement.style.display = 'none'; // लोडर को छिपा दें
+                titleElement.textContent = "Welcome!";
+                messageElement.innerHTML = "This is a custom URL shortener. Use a generated short link to be redirected.";
+                return; // फंक्शन को यहीं रोक दें
+            }
+
+            try {
+                // 3. अपनी links.json फ़ाइल को fetch (डाउनलोड) करना
+                const response = await fetch('links.json');
+                
+                // अगर फाइल नहीं मिलती (जैसे 404 एरर), तो एरर थ्रो करें
+                if (!response.ok) {
+                    throw new Error(`Could not fetch links.json (Status: ${response.status})`);
+                }
+                const links = await response.json();
+
+                // 4. JSON डेटा में शॉर्ट कोड को ढूँढना
+                if (links && links[shortCode]) {
+                    // अगर शॉर्ट कोड मिल गया, तो यूज़र को उस लंबे URL पर तुरंत भेज दो
+                    messageElement.textContent = `Redirecting you now...`;
+                    // window.location.replace() यूज़र को नए URL पर भेजता है और हिस्ट्री में एंट्री नहीं बनाता,
+                    // ताकि यूज़र बैक बटन दबाकर रीडायरेक्ट पेज पर वापस न आए।
+                    window.location.replace(links[shortCode]);
+                } else {
+                    // 5. अगर शॉर्ट कोड नहीं मिला, तो एरर मैसेज दिखाओ
+                    loaderElement.style.display = 'none';
+                    messageElement.textContent = `Error: The short link "${shortCode}" was not found in our database.`;
+                }
+            } catch (error) {
+                // 6. अगर links.json फ़ाइल लोड नहीं हुई या JSON में कोई एरर है, तो एरर दिखाओ
+                console.error("Error:", error);
+                loaderElement.style.display = 'none';
+                messageElement.textContent = "Error: Could not load the link database. Please check if links.json exists and is valid.";
+            }
+        })();
+    </script>
+</body>
+</html>
